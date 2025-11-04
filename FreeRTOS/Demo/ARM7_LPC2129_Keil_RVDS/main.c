@@ -27,8 +27,8 @@ void Led1Blink(void *pvParameters) {
 
 int main(void) {
     Led_Init();
-    xTaskCreate(Led0Blink, NULL, 100, NULL, 2, NULL);
-    xTaskCreate(Led1Blink, NULL, 100, NULL, 2, NULL);
+    xTaskCreate(Led0Blink, NULL, 100, NULL, 3, NULL);
+    xTaskCreate(Led1Blink, NULL, 100, NULL, 1, NULL);
     vTaskStartScheduler();
     while (1);
 }
