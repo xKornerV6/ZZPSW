@@ -12,6 +12,14 @@ void PulseTrigger(void *pvParameters) {
     }
 }
 
+void PulseTriggerFast(void *pvParameters) {
+    vTaskDelay(pdMS_TO_TICKS(333));
+    while (1) {
+        xSemaphoreGive(xPulseSemaphore);
+        vTaskDelay(pdMS_TO_TICKS(333));
+    }
+}
+
 void Pulse_LED0(void *pvParameters) {
     while (1) {
         if (xSemaphoreTake(xPulseSemaphore, portMAX_DELAY) == pdTRUE) {
@@ -26,6 +34,7 @@ int main(void) {
     Led_Init();
     xPulseSemaphore = xSemaphoreCreateBinary();
     xTaskCreate(PulseTrigger, NULL, 100, NULL, 2, NULL);
+    xTaskCreate(PulseTriggerFast, NULL, 100, NULL, 2, NULL);
     xTaskCreate(Pulse_LED0, NULL, 100, NULL, 2, NULL);
     vTaskStartScheduler();
     while (1);
