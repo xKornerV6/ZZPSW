@@ -1,36 +1,32 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "led.h"
+#include "semphr.h"
 
-TaskHandle_t xBlinkHandle;
+SemaphoreHandle_t xPulseSemaphore;
 
-void Delay(unsigned int uiMiliSec) {
-    unsigned int uiLoopCtr, uiDelayLoopCount;
-    uiDelayLoopCount = uiMiliSec * 12000;
-    for (uiLoopCtr = 0; uiLoopCtr < uiDelayLoopCount; uiLoopCtr++) {
+void PulseTrigger(void *pvParameters) {
+    while (1) {
+        xSemaphoreGive(xPulseSemaphore);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
-void LedBlink(void *pvParameters) {
+void Pulse_LED0(void *pvParameters) {
     while (1) {
-        Led_Toggle(0);
-        vTaskDelay(pdMS_TO_TICKS(200));
-    }
-}
-
-void LedCtrl(void *pvParameters) {
-    while (1) {
-        vTaskSuspend(xBlinkHandle);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        vTaskResume(xBlinkHandle);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        if (xSemaphoreTake(xPulseSemaphore, portMAX_DELAY) == pdTRUE) {
+            Led_Toggle(0);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            Led_Toggle(0);
+        }
     }
 }
 
 int main(void) {
     Led_Init();
-    xTaskCreate(LedBlink, NULL, 100, NULL, 2, &xBlinkHandle);
-    xTaskCreate(LedCtrl, NULL, 100, NULL, 2, NULL);
+    xPulseSemaphore = xSemaphoreCreateBinary();
+    xTaskCreate(PulseTrigger, NULL, 100, NULL, 2, NULL);
+    xTaskCreate(Pulse_LED0, NULL, 100, NULL, 2, NULL);
     vTaskStartScheduler();
     while (1);
 }
