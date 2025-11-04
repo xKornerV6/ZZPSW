@@ -129,18 +129,24 @@ __irq void UART0_Interrupt (void) {
 }
 
 ////////////////////////////////////////////
-void UART_InitWithInt(unsigned int uiBaudRate){
+void UART_InitWithInt(unsigned int uiBaudRate) {
+
+   unsigned int uiDivider;
 
    // UART0
-   PINSEL0 = PINSEL0 | mP0_1_RX0_PIN_MODE | mP0_0_TX0_PIN_MODE;                      // ustawic pina na odbiornik uart0
-   U0LCR  |= m8BIT_UART_WORD_LENGTH | mDIVISOR_LATCH_ACCES_BIT; // długosc słowa, DLAB = 1
-   U0DLL   = (((15000000)/16)/uiBaudRate);                      // predkosc transmisji
-   U0LCR  &= (~mDIVISOR_LATCH_ACCES_BIT);                       // DLAB = 0
-   U0IER  |= mRX_DATA_AVALIABLE_INTERRUPT_ENABLE | mTHRE_INTERRUPT_ENABLE;               // Wlaczamy przerwanie po odebraniu znaku i wpisaniu go do bufora U0RBR
+   PINSEL0 = PINSEL0 | mP0_1_RX0_PIN_MODE | mP0_0_TX0_PIN_MODE; // ustawic pina na odbiornik uart0
+   U0LCR  = m8BIT_UART_WORD_LENGTH | mDIVISOR_LATCH_ACCES_BIT;  // długość słowa, DLAB = 1
+   uiDivider = (15000000 / (16 * uiBaudRate));                   // obliczenie dzielnika
+   U0DLL = uiDivider & 0xFF;
+   U0DLM = (uiDivider >> 8) & 0xFF;
+   U0LCR &= (~mDIVISOR_LATCH_ACCES_BIT);                        // DLAB = 0
+   U0IER |= mRX_DATA_AVALIABLE_INTERRUPT_ENABLE | mTHRE_INTERRUPT_ENABLE; // włączenie przerwań RX i TX
 
    // INT
    VICVectAddr2  = (unsigned long) UART0_Interrupt;             // set interrupt service routine address
    VICVectCntl2  = mIRQ_SLOT_ENABLE | VIC_UART0_CHANNEL_NR;     // use it for UART 0 Interrupt
    VICIntEnable |= (0x1 << VIC_UART0_CHANNEL_NR);               // Enable UART 0 Interrupt Channel
 }
+
+
 
