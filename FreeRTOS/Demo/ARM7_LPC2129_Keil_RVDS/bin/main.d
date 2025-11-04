@@ -15,4 +15,3 @@
 .\bin\main.o: ..\..\Source\include\queue.h
 .\bin\main.o: uart.h
 .\bin\main.o: keyboard.h
-.\bin\main.o: led.h

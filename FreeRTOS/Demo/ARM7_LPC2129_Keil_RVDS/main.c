@@ -3,50 +3,41 @@
 #include "semphr.h"
 #include "uart.h"
 #include "keyboard.h"
-#include "led.h"
 
-SemaphoreHandle_t xUartSemaphore;
+SemaphoreHandle_t xSemaphore;
+
+void Rtos_Transmiter_SendString(char *pcString) {
+    xSemaphoreTake(xSemaphore, portMAX_DELAY);
+    Transmiter_SendString(pcString);
+    while (Transmiter_GetStatus() != FREE) {}
+    xSemaphoreGive(xSemaphore);
+}
 
 void LettersTx(void *pvParameters) {
-    while(1) {
-        if (xSemaphoreTake(xUartSemaphore, portMAX_DELAY) == pdTRUE) {
-            Transmiter_SendString("-ABCDEEFGH-\n");
-            while (Transmiter_GetStatus() != FREE) {};
-            xSemaphoreGive(xUartSemaphore);
-        }
-        vTaskDelay(pdMS_TO_TICKS(300));
+    while (1) {
+        Rtos_Transmiter_SendString("-ABCDEEFGH-\n");
+        vTaskDelay(300);
     }
 }
 
 void KeyboardTx(void *pvParameters) {
-    enum eKeyboardState ePrevState = RELASED;
-    while(1) {
-        enum eKeyboardState eCurrentState = eKeyboardRead();
-        if (eCurrentState != RELASED && ePrevState == RELASED) {
-            if (xSemaphoreTake(xUartSemaphore, portMAX_DELAY) == pdTRUE) {
-                Transmiter_SendString("-Keyboard-\n");
-                while (Transmiter_GetStatus() != FREE) {};
-                xSemaphoreGive(xUartSemaphore);
-            }
+    enum eKeyboardState eKey;
+    while (1) {
+        eKey = eKeyboardRead();
+        if (eKey != RELASED) {
+            Rtos_Transmiter_SendString("-Keyboard-\n");
         }
-        ePrevState = eCurrentState;
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(100);
     }
 }
 
 int main(void) {
-    Led_Init();
-    LedOn(0);  
-
     UART_InitWithInt(9600);
     KeyboardInit();
-
-    xUartSemaphore = xSemaphoreCreateBinary();
-    xSemaphoreGive(xUartSemaphore);
-
+    xSemaphore = xSemaphoreCreateBinary();
+    xSemaphoreGive(xSemaphore);
     xTaskCreate(LettersTx, NULL, 128, NULL, 1, NULL);
     xTaskCreate(KeyboardTx, NULL, 128, NULL, 1, NULL);
-
     vTaskStartScheduler();
-    while(1);
+    while (1);
 }
